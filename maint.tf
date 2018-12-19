@@ -1,20 +1,30 @@
-//--------------------------------------------------------------------
-// Workspace Data
-data "terraform_remote_state" "awsdemo_darnold_tfe_network" {
-  backend = "atlas"
-  config {
-    name    = "AWSDemoDarnoldTFE/Network"
-  }
+# Create a new instance of the latest Ubuntu 14.04 on an
+# t2.micro node with an AWS Tag naming it "HelloWorld"
+provider "aws" {
+  region = "us-west-2"
 }
 
-//--------------------------------------------------------------------
-// Modules
-module "ec2_instance" {
-  source  = "app.terraform.io/AWSDemoDarnoldTFE/ec2-instance/aws"
-  version = "4.0.0"
+data "aws_ami" "ubuntu" {
+  most_recent = true
 
-  instance_name = "DemoInstance"
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-trusty-14.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["099720109477"] # Canonical
+}
+
+resource "aws_instance" "web" {
+  ami           = "${data.aws_ami.ubuntu.id}"
   instance_type = "m4.large"
-  key_name = "tfe-demos-darnold"
-  subnet_id = "${element(data.terraform_remote_state.awsdemo_darnold_tfe_network.public_subnets, 0)}"
+
+  tags = {
+    Name = "HelloWorld"
+  }
 }
